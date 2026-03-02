@@ -13,7 +13,7 @@ type: python
 image: python:3.11
 
 # TODO: Set the connection.
-connection: duckdb-default
+connection: gcp-default
 
 # TODO: Choose materialization (optional, but recommended).
 # Bruin feature: Python materialization lets you return a DataFrame (or list[dict]) and Bruin loads it into your destination.
@@ -35,7 +35,7 @@ materialization:
 # Docs: https://getbruin.com/docs/bruin/assets/columns
 columns:
   - name: VendorID
-    type: integer
+    type: INT64
     description: "Vendor identifier"
   - name: pickup_datetime
     type: timestamp
@@ -44,19 +44,19 @@ columns:
     type: timestamp
     description: "Trip dropoff datetime"
   - name: passenger_count
-    type: integer
+    type: INT64
     description: "Number of passengers"
   - name: trip_distance
     type: float
     description: "Trip distance in miles"
   - name: pickup_location_id
-    type: integer
+    type: INT64
     description: "Pickup location ID"
   - name: dropoff_location_id
-    type: integer
+    type: INT64
     description: "Dropoff location ID"
   - name: payment_type
-    type: integer
+    type: INT64
     description: "Payment type ID"
   - name: fare_amount
     type: float

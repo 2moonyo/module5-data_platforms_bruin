@@ -20,7 +20,7 @@ start_date: "2021-01-01"
 # Common pattern: `duckdb: duckdb-default` for local dev.
 # Docs (connections): https://getbruin.com/docs/bruin/commands/connections
 default_connections:
-  duckdb: duckdb-default
+  bigquery: gcp-default
 
 # TODO: Define pipeline variables using JSON Schema and defaults.
 # - Variables must have a `default` so assets can render without `--var`.

@@ -11,10 +11,10 @@ name: ingestion.payment_lookup
 # TODO: Set platform type.
 # Docs: https://getbruin.com/docs/bruin/assets/seed
 # suggested type: duckdb.seed
-type: duckdb.seed
+type: bq.seed
 
 # Explicit connection for seed asset
-connection: duckdb-default
+connection: gcp-default
 
 # Path to the CSV file (relative to this .asset.yml file).
 # Can also be a URL: https://example.com/data.csv
@@ -25,7 +25,7 @@ parameters:
 # - Lookups should have a stable primary key.
 columns:
   - name: payment_type_id
-    type: integer
+    type: INT64
     description: "Numeric identifier for payment type"
     primary_key: true
     checks:
