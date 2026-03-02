@@ -89,6 +89,7 @@ import os
 import json
 import pandas as pd
 import requests
+from io import BytesIO
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
@@ -121,7 +122,13 @@ def materialize():
             
             try:
                 print(f"Fetching {url}...")
-                df = pd.read_parquet(url)
+                # Add headers to avoid 403 Forbidden from CloudFront
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                }
+                response = requests.get(url, headers=headers)
+                response.raise_for_status()
+                df = pd.read_parquet(BytesIO(response.content))
                 
                 # Handle duplicate columns with different cases (e.g., airport_fee vs Airport_fee)
                 # Coalesce duplicates before normalizing
