@@ -88,14 +88,15 @@ columns:
 import os
 import json
 import pandas as pd
+import requests
+from io import BytesIO
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from dateutil.parser import parse
-from google.cloud import bigquery
 
 def materialize():
     """
-    Fetch NYC Taxi data from BigQuery public dataset.
-    Using BigQuery public dataset avoids 403 errors from CloudFront URLs.
+    Fetch NYC Taxi data from TLC public endpoint.
     """
     # Get Bruin runtime variables
     start_date = parse(os.environ['BRUIN_START_DATE']).date()
@@ -104,67 +105,59 @@ def materialize():
     pipeline_vars = json.loads(vars_json)
     taxi_types = pipeline_vars.get('taxi_types', ['yellow', 'green'])
     
-    # Initialize BigQuery client
-    client = bigquery.Client()
+    # Base URL for NYC TLC data
+    base_url = "https://d37ci6vzurychx.cloudfront.net/trip-data/"
     
-    # Get unique years in the date range
-    years = set()
-    for year in range(start_date.year, end_date.year + 1):
-        years.add(year)
-    
+    # Generate list of months to fetch
     dataframes = []
+    current = start_date.replace(day=1)
+    end = end_date.replace(day=1)
     
-    for taxi_type in taxi_types:
-        for year in sorted(years):
-            # BigQuery public dataset tables are named by year
-            table_id = f'bigquery-public-data.new_york_taxi_trips.tlc_{taxi_type}_trips_{year}'
-            
-            # Query for the date range within this year
-            year_start = max(start_date, datetime(year, 1, 1).date())
-            year_end = min(end_date, datetime(year, 12, 31).date())
-            
-            query = f"""
-            SELECT 
-                vendor_id,
-                pickup_datetime,
-                dropoff_datetime,
-                passenger_count,
-                trip_distance,
-                pickup_longitude,
-                pickup_latitude,
-                rate_code,
-                store_and_fwd_flag,
-                dropoff_longitude,
-                dropoff_latitude,
-                payment_type,
-                fare_amount,
-                extra,
-                mta_tax,
-                tip_amount,
-                tolls_amount,
-                total_amount,
-                imp_surcharge as improvement_surcharge,
-                pickup_location_id,
-                dropoff_location_id
-            FROM `{table_id}`
-            WHERE DATE(pickup_datetime) BETWEEN '{year_start}' AND '{year_end}'
-            """
+    while current <= end:
+        year_month = current.strftime('%Y-%m')
+        
+        for taxi_type in taxi_types:
+            filename = f"{taxi_type}_tripdata_{year_month}.parquet"
+            url = base_url + filename
             
             try:
-                print(f"Querying {table_id} for {year_start} to {year_end}...")
-                df = client.query(query).to_dataframe()
+                print(f"Fetching {url}...")
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                df = pd.read_parquet(BytesIO(response.content))
                 
-                if len(df) > 0:
-                    # Add metadata columns
-                    df['taxi_type'] = taxi_type
-                    df['extracted_at'] = datetime.now()
-                    
-                    dataframes.append(df)
-                    print(f"Successfully fetched {len(df)} rows from {taxi_type} trips {year}")
-                else:
-                    print(f"No data found for {taxi_type} trips {year}")
+                # Handle duplicate columns with different cases (e.g., airport_fee vs Airport_fee)
+                # Coalesce duplicates before normalizing
+                if 'Airport_fee' in df.columns and 'airport_fee' in df.columns:
+                    df['airport_fee'] = df['airport_fee'].fillna(df['Airport_fee'])
+                    df = df.drop(columns=['Airport_fee'])
+                
+                # Standardize column names (handle variations between yellow and green)
+                column_mapping = {
+                    'tpep_pickup_datetime': 'pickup_datetime',
+                    'tpep_dropoff_datetime': 'dropoff_datetime',
+                    'lpep_pickup_datetime': 'pickup_datetime',
+                    'lpep_dropoff_datetime': 'dropoff_datetime',
+                    'PULocationID': 'pickup_location_id',
+                    'DOLocationID': 'dropoff_location_id',
+                    'RatecodeID': 'rate_code_id',
+                    'VendorID': 'vendor_id'
+                }
+                df = df.rename(columns=column_mapping)
+                
+                # Normalize all column names to lowercase to avoid collisions
+                df.columns = df.columns.str.lower()
+                
+                # Add metadata columns
+                df['taxi_type'] = taxi_type
+                df['extracted_at'] = datetime.now()
+                
+                dataframes.append(df)
+                print(f"Successfully fetched {len(df)} rows from {filename}")
             except Exception as e:
-                print(f"Warning: Could not fetch {taxi_type} data for {year}: {e}")
+                print(f"Warning: Could not fetch {url}: {e}")
+        
+        current += relativedelta(months=1)
     
     if not dataframes:
         raise ValueError("No data fetched. Check date range and taxi_types.")
