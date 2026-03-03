@@ -5,7 +5,7 @@ type: python
 
 image: python:3.12
 
-connection: duckdb-default
+connection: gcp-default
 
 materialization:
   type: table

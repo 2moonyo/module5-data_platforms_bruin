@@ -1,7 +1,7 @@
 /* @bruin
 
 name: reports.trips_report
-type: duckdb.sql
+type: bq.sql
 
 depends:
   - staging.trips

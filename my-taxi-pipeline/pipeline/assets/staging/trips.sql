@@ -1,7 +1,7 @@
 /* @bruin
 
 name: staging.trips
-type: duckdb.sql
+type: bq.sql
 
 depends:
   - ingestion.trips

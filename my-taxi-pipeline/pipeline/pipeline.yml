@@ -20,7 +20,7 @@ start_date: "2022-01-01"
 # Common pattern: `duckdb: duckdb-default` for local dev.
 # Docs (connections): https://getbruin.com/docs/bruin/commands/connections
 default_connections:
-  duckdb: duckdb-default
+  google_cloud_platform: gcp-default
 
 
 variables:
