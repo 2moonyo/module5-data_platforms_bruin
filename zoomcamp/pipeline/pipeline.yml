@@ -14,14 +14,14 @@ schedule: monthly
 
 # TODO: Set the earliest date this pipeline should consider for full refresh backfills.
 # Format: YYYY-MM-DD
-start_date: "2021-01-01"
+start_date: "2023-01-01"  # Using 2023 data which is available (2021-2022 returns 403)
 end_date: "2023-04-30"  # Latest available data (can be overridden with --end-date)
 
 # TODO: Configure default connections so assets can omit explicit `connection: ...`.
 # Common pattern: `duckdb: duckdb-default` for local dev.
 # Docs (connections): https://getbruin.com/docs/bruin/commands/connections
 default_connections:
-  bigquery: gcp-default
+  google_cloud_platform: gcp-default
 
 # TODO: Define pipeline variables using JSON Schema and defaults.
 # - Variables must have a `default` so assets can render without `--var`.
